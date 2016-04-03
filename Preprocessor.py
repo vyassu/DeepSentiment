@@ -86,11 +86,11 @@ def main():
    trainDump = open("trainingdata.pkl","wb")
    testDump = open("testingdata.pkl","wb")
    print('Dumping the Training Data')
-   cPickle.dump((trainX,trainY),trainDump)
-   print('Dumping the Test Data')
-   cPickle.dump((testX,testY),testDump)
-   
+   cPickle.dump((trainX,trainY),trainDump,-1)
    trainDump.close()
+
+   print('Dumping the Test Data')
+   cPickle.dump((testX,testY),testDump,-1)
    testDump.close()
 
 if __name__ =='__main__':
