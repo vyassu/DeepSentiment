@@ -1,36 +1,45 @@
 import cPickle,os
 import Preprocessor as pp
 import numpy
+import re
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation,Dropout,TimeDistributedDense
 from keras.layers.recurrent import LSTM
+from keras.layers.embeddings import Embedding
+
 
 
 
 class LSTMSentiment:
 
     def __init__(self):
-       self.in_dim = 1
+       self.in_dim = 500
        self.n_prev=25
        self.future=50
        out_dim = 1
        hidden_neurons = 300
+       self.max_length = 500
+       max_features = 20000
        
        # Initializing a sequential Model
        self.model = Sequential()
-       self.model.add(Dense(output_dim=1,input_dim=2,activation='relu'))
-       self.model.add(Activation("relu"))
-       self.model.add(Dense(output_dim=10))
-       self.model.add(Activation("softmax"))
+       self.model.add(Embedding(max_features, 128, input_length=self.max_length))
+       #self.model.add(LSTM(output_dim=128,input_dim=500,activation='relu'))
+       self.model.add(LSTM(128))
+       #self.model.add(Activation("relu"))
        self.model.add(Dropout(0.5))
+       self.model.add(Dense(1))
+       self.model.add(Activation("sigmoid"))
 
 
-    def configureLSTMModel(self,trainX,trainY):
-       self.model.compile(loss='categorical_crossentropy', optimizer='sgd')
-       self.model.fit(trainX, trainY, nb_epoch=5, batch_size=32)
+    def configureLSTMModel(self,TrainX,TrainY):
+       print('Configuring the LSTM Model')
+       self.model.compile(loss='categorical_crossentropy', optimizer='adam')
+       #,class_mode ="binary")
+       self.model.fit(TrainX, TrainY, nb_epoch=5,batch_size=32, show_accuracy=True)
 
 
-    def evaluateLSTMModel(self,testX,testY):
+    def evaluateLSTMModel(self,TestX,TestY):
        objective_score = self.model.evaluate(X_test, Y_test, batch_size=32)
        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
        print(objective_score)
@@ -82,11 +91,8 @@ class LSTMSentiment:
 
        worddict = dict()
 
-
        for idx, ss in enumerate(sorted_idx):
-          worddict[keys[ss]] = idx+2  # leave 0 and 1 (UNK)
-       print('###################### Dictionary ######################')
-       print(worddict)
+          worddict[keys[ss]] = idx+2
 
        print numpy.sum(counts), ' total words ', len(keys), ' unique words'
 
@@ -97,7 +103,8 @@ class LSTMSentiment:
        transformedDataX = [None] * len(dataX)
        transformedDataY = dataY
        for ind,sen in enumerate(dataX):
-          words = sen.lower().split()
+          #words = sen.lower().split()
+          words = re.sub("[^\w]", " ", sen).lower().split()
           transformedDataX[ind]=[]
           for w in words:
              if w in worddict:
@@ -105,6 +112,15 @@ class LSTMSentiment:
              else:
                 transformedDataX[ind].append(1)
           
+       #Converting the length of the transformed data to maximum length
+       for i in transformedDataX:
+          transLen = len(i)
+          if(transLen < self.max_length): #Pad zeroes to the data vector
+              i += [0]*(self.max_length - transLen)
+          elif transLen > self.max_length:
+              del i[self.max_length:]
+
+
           #transformedData[ind] = [worddict[w] if w in worddict else 1 for w in words]
        #print('############################# Transformed Data ###################')
        #print(transformedData)
@@ -129,19 +145,56 @@ def main():
        
    worddict = dict()
    worddict = lstm.build_dict(trainX,testX)
+
+   print('Transforming Training and Test Data')
    (TrainX,TrainY) = lstm.transformData(trainX,trainY,worddict)
 
+   '''
    print('********************** Training Data *********************')
    for i in xrange(0,len(TrainX)):
        print(TrainX[i] , '  :  :  ' , TrainY[i])
+   '''
+   print('-------------------------')
+   print('Training Data : Input')
+   for i in TrainX:
+     print(len(i))
+   
+   print('--------------------------')
+   print('Training data : Output')
+   for i in TrainY:
+     print(len(i)) 
+
 
    (TestX,TestY) = lstm.transformData(testX,testY,worddict)
-     
+   
+   '''  
    print('********************** Testing Data **********************')
    for i in xrange(0,len(TestX)):
        print(TestX[i] , '  :  :  ' , TestY[i])   
+   '''
+   TrainX = numpy.array(TrainX)
+   TrainY = numpy.array(TrainY)
+   TrainY = TrainY.reshape(TrainY.shape[0],1)
 
-   
+   print('************* After Numpy transformation *****************')
+   print(TrainX)
+   print(TrainX.shape)
+   print('--------------------------------')
+   print(TrainY)
+   print(TrainY.shape)
+
+   lstm.configureLSTMModel(TrainX,TrainY)
+
+
+   TestX = numpy.array(TestX)
+   TestY = numpy.array(TestY)
+   TestY = TestY.reshape(TrainY.shape[0],1)
+   print('************* After Numpy transformation *****************')
+   print(TestX)
+   print(TestX.shape)
+   print('--------------------------------')
+   print(TestY)
+   print(TestY.shape)
    
 if __name__ =='__main__':
    main()
