@@ -17,7 +17,7 @@ class LSTMSentiment:
        self.n_prev=25
        self.future=50
        out_dim = 1
-       hidden_neurons = 300
+       hidden_neurons = 500
        self.max_length = 500
        max_features = 20000
        
@@ -25,24 +25,27 @@ class LSTMSentiment:
        self.model = Sequential()
        self.model.add(Embedding(max_features, 128, input_length=self.max_length))
        #self.model.add(LSTM(output_dim=128,input_dim=500,activation='relu'))
-       self.model.add(LSTM(128))
+       self.model.add(LSTM(output_dim=128,activation ='sigmoid'))
+       #self.model.add(LSTM(400))
        #self.model.add(Activation("relu"))
        self.model.add(Dropout(0.5))
        self.model.add(Dense(1))
-       self.model.add(Activation("sigmoid"))
+       self.model.add(Activation('sigmoid'))
 
 
     def configureLSTMModel(self,TrainX,TrainY):
        print('Configuring the LSTM Model')
-       self.model.compile(loss='categorical_crossentropy', optimizer='adam')
+       self.model.compile(loss='binary_crossentropy', optimizer='adam', class_mode ="binary")
        #,class_mode ="binary")
-       self.model.fit(TrainX, TrainY, nb_epoch=5,batch_size=32, show_accuracy=True)
+       self.model.fit(TrainX, TrainY, nb_epoch=15,batch_size=32, show_accuracy=True)
 
 
     def evaluateLSTMModel(self,TestX,TestY):
-       objective_score = self.model.evaluate(X_test, Y_test, batch_size=32)
+       obj_sc,acc = self.model.evaluate(TestX, TestY, batch_size=32,show_accuracy=True)
        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-       print(objective_score)
+       print('Objective Score : ',obj_sc)
+       print('Accuracy : ' ,acc)
+
 
 
     def predictSentiment(self,testX):
@@ -98,7 +101,7 @@ class LSTMSentiment:
 
        return worddict
 
-    # Transforms the sentences into number vectors where the number represents the value corresponding to the word in the Dictionary built above
+    # Transforms sentences into number vectors where number represents value corresponding to the word in the Dictionary built above
     def transformData(self,dataX,dataY,worddict):
        transformedDataX = [None] * len(dataX)
        transformedDataY = dataY
@@ -113,18 +116,23 @@ class LSTMSentiment:
                 transformedDataX[ind].append(1)
           
        #Converting the length of the transformed data to maximum length
+       transX = []
        for i in transformedDataX:
           transLen = len(i)
           if(transLen < self.max_length): #Pad zeroes to the data vector
-              i += [0]*(self.max_length - transLen)
+              transX.append([0]*(self.max_length - transLen) + i)
+              #print('@@@@@@@@@@@@@@@@@@@ Test:  ',len(i), ' ; ',len(j) )
+              #print(i)
           elif transLen > self.max_length:
-              del i[self.max_length:]
+              j = i
+              del j[self.max_length:]
+              transX.append(j)
 
 
           #transformedData[ind] = [worddict[w] if w in worddict else 1 for w in words]
-       #print('############################# Transformed Data ###################')
-       #print(transformedData)
-       return (transformedDataX, transformedDataY)
+       print('############################# Transformed Data ###################')
+       print(transX)
+       return (transX, transformedDataY)
 
 
 
@@ -153,7 +161,7 @@ def main():
    print('********************** Training Data *********************')
    for i in xrange(0,len(TrainX)):
        print(TrainX[i] , '  :  :  ' , TrainY[i])
-   '''
+   
    print('-------------------------')
    print('Training Data : Input')
    for i in TrainX:
@@ -163,38 +171,46 @@ def main():
    print('Training data : Output')
    for i in TrainY:
      print(len(i)) 
-
+   '''
 
    (TestX,TestY) = lstm.transformData(testX,testY,worddict)
    
-   '''  
+   ''' 
    print('********************** Testing Data **********************')
    for i in xrange(0,len(TestX)):
-       print(TestX[i] , '  :  :  ' , TestY[i])   
+       print(len(TestX[i]) , '  :  :  ' , TestY[i])   
+   
    '''
    TrainX = numpy.array(TrainX)
    TrainY = numpy.array(TrainY)
    TrainY = TrainY.reshape(TrainY.shape[0],1)
-
+   
    print('************* After Numpy transformation *****************')
-   print(TrainX)
+   #print(TrainX)
    print(TrainX.shape)
    print('--------------------------------')
-   print(TrainY)
+   #print(TrainY)
    print(TrainY.shape)
-
+   
    lstm.configureLSTMModel(TrainX,TrainY)
 
-
+   
    TestX = numpy.array(TestX)
    TestY = numpy.array(TestY)
-   TestY = TestY.reshape(TrainY.shape[0],1)
+   TestY = TestY.reshape(TestY.shape[0],1)
+   
+   
    print('************* After Numpy transformation *****************')
-   print(TestX)
+   #print(TestX)
    print(TestX.shape)
    print('--------------------------------')
-   print(TestY)
+   #print(TestY)
    print(TestY.shape)
+   
+
+   print('Evaluating the Model')
+   lstm.evaluateLSTMModel(TestX,TestY)
+   
    
 if __name__ =='__main__':
    main()
