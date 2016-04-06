@@ -7,7 +7,9 @@ from keras.layers.core import Dense, Activation,Dropout,TimeDistributedDense
 from keras.layers.recurrent import LSTM
 from keras.layers.embeddings import Embedding
 
-
+from sklearn import svm
+from sklearn import cross_validation
+from sklearn.multiclass import OneVsRestClassifier
 
 
 class LSTMSentiment:
@@ -20,38 +22,54 @@ class LSTMSentiment:
        hidden_neurons = 500
        self.max_length = 500
        max_features = 20000
+       self.batch_size=50
        
        # Initializing a sequential Model
        self.model = Sequential()
        self.model.add(Embedding(max_features, 128, input_length=self.max_length))
        #self.model.add(LSTM(output_dim=128,input_dim=500,activation='relu'))
-       self.model.add(LSTM(output_dim=128,activation ='sigmoid'))
-       #self.model.add(LSTM(400))
+       self.model.add(LSTM(output_dim=128,activation ='sigmoid',return_sequences=True))
+       self.model.add(Dropout(0.5))
+       self.model.add(LSTM(400))
        #self.model.add(Activation("relu"))
        self.model.add(Dropout(0.5))
        self.model.add(Dense(1))
-       self.model.add(Activation('sigmoid'))
+       self.model.add(Activation('tanh'))
+
+       self.model1 = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=1,C = 1,tol=0.0001,cache_size=5000)  )
 
 
-    def configureLSTMModel(self,TrainX,TrainY):
+    def configureLSTMModel(self,TrainX,TrainY,validX,validY):
        print('Configuring the LSTM Model')
-       self.model.compile(loss='binary_crossentropy', optimizer='adam', class_mode ="binary")
+       self.model.compile(loss='binary_crossentropy', optimizer='rmsprop',class_mode="binary")
        #,class_mode ="binary")
-       self.model.fit(TrainX, TrainY, nb_epoch=15,batch_size=32, show_accuracy=True)
+       #self.model.fit(TrainX, TrainY, nb_epoch=5,batch_size=self.batch_size, show_accuracy=True,validation_data=(validX,validY))
 
+       self.model1.fit(TrainX, TrainY)
 
     def evaluateLSTMModel(self,TestX,TestY):
-       obj_sc,acc = self.model.evaluate(TestX, TestY, batch_size=32,show_accuracy=True)
-       print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-       print('Objective Score : ',obj_sc)
-       print('Accuracy : ' ,acc)
+       #obj_sc,acc = self.model.evaluate(TestX, TestY, batch_size=32,show_accuracy=True)
+       # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+       # print('Objective Score : ',obj_sc)
+       # print('Accuracy : ' ,acc)
+
+       print self.model1.score(TestX, TestY)
+
+       predicted_data=[]
+       for i in range(len(TestX)):
+          predicted_data.append(list([self.model1.predict(TestX[i].reshape(1,-1)),TestY[i]]))
+
+       print "Predicted Data"
+       print predicted_data
+       #print TestY
 
 
 
-    def predictSentiment(self,testX):
-       sentiment = self.model.predict_classes(testX,batch_size=32)
+    def predictSentiment(self,testX,testY):
+       sentiment = self.model.predict_on_batch(testX)
        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
        print(sentiment)
+       print testY
 
 
     def getTrainTestData(self):
@@ -140,7 +158,11 @@ class LSTMSentiment:
        wordList=[]
        for i in xrange(0,len(dataX)):
           wordList[i] = re.sub("[^\w]", " ",  dataX[i]).split()
-          print(dataX[i],' :::::::::::::::::::::   ',wordList[i])       
+          print(dataX[i],' :::::::::::::::::::::   ',wordList[i])
+
+    def getValidationData(self,dataX,dataY):
+
+       return dataX[0:self.batch_size,:],dataY[0:self.batch_size,:]
 
 
 def main():
@@ -150,7 +172,9 @@ def main():
    print('Retrieving the Training and Test Data')
    path = os.getcwd()
    ((trainX,trainY),(testX,testY)) = lstm.getTrainTestData()
-       
+
+
+
    worddict = dict()
    worddict = lstm.build_dict(trainX,testX)
 
@@ -191,8 +215,10 @@ def main():
    print('--------------------------------')
    #print(TrainY)
    print(TrainY.shape)
-   
-   lstm.configureLSTMModel(TrainX,TrainY)
+
+   validX, validY = lstm.getValidationData(TrainX,TrainY)
+
+   lstm.configureLSTMModel(TrainX,TrainY,validX,validY)
 
    
    TestX = numpy.array(TestX)
@@ -207,7 +233,7 @@ def main():
    #print(TestY)
    print(TestY.shape)
    
-
+   lstm.predictSentiment(TestX,TestY)
    print('Evaluating the Model')
    lstm.evaluateLSTMModel(TestX,TestY)
    
