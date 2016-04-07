@@ -10,9 +10,7 @@ import pickle
 from sklearn import svm
 from sklearn import cross_validation
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import LinearSVC
 from sklearn.externals import joblib
-from sklearn.preprocessing import MultiLabelBinarizer
 
 class speechLSTM:
     # Initializing the LSTM Model
@@ -35,7 +33,7 @@ class speechLSTM:
         outputdata = []
         for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/DC/*.wav"):
             frate, inputdata = sc.read(f)
-            pitch=lp.getPitch(f)
+            pitch=lp.getPitch(f,frate)
             emotion = ""
             loudness = abs(an.loudness(inputdata))
             filename = f.split("/")[-1].split(".")[0]
@@ -48,7 +46,7 @@ class speechLSTM:
             outputdata.append(list([loudness,pitch, emotion]))
         for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/JE/*.wav"):
             frate, inputdata = sc.read(f)
-            pitch = lp.getPitch(f)
+            pitch = lp.getPitch(f,frate)
             emotion = ""
             loudness = abs(an.loudness(inputdata))
             filename = f.split("/")[-1].split(".")[0]
@@ -61,7 +59,7 @@ class speechLSTM:
             outputdata.append(list([loudness, pitch, emotion]))
         for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/JK/*.wav"):
             frate, inputdata = sc.read(f)
-            pitch = lp.getPitch(f)
+            pitch = lp.getPitch(f,frate)
             emotion = ""
             loudness = abs(an.loudness(inputdata))
             filename = f.split("/")[-1].split(".")[0]
@@ -74,7 +72,7 @@ class speechLSTM:
             outputdata.append(list([loudness, pitch, emotion]))
         for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/KL/*.wav"):
             frate, inputdata = sc.read(f)
-            pitch = lp.getPitch(f)
+            pitch = lp.getPitch(f,frate)
             emotion = ""
             loudness = abs(an.loudness(inputdata))
             filename = f.split("/")[-1].split(".")[0]
@@ -135,15 +133,35 @@ class speechLSTM:
             print emotion_list
         return emotion_list
 
+    def load_data(self):
+        datadirectory = self.working_directory+"Data/"
+        outputdata=[]
+        for f in gb.glob(datadirectory+"*.wav"):
+            frate, inputdata = sc.read(f)
+            pitch = lp.getPitch(f,frate)
+            emotion = ""
+            loudness = abs(an.loudness(inputdata))
+            filename = f.split("/")[-1].split(".")[0]
+            if filename[0] == "s":
+                emotion = filename[0:2]
+            else:
+                emotion = filename[0]
 
+            outputdata.append(list([loudness, pitch, emotion]))
+        return outputdata
 
 def main():
+    print ("Pitch and Loudness processing Start time:", datetime.datetime.now().time())
     attributes =['a','d','h','su','sa','f']
+    emotionData = {}
     emotions_mapping = {"a":"Angry","d":"Disgust","h":"happy","su":"surprise","sa":"sadness","f":"fear"}
     working_directory = "/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/"
+
     print ("Model Creation Start time:",datetime.datetime.now().time())
     testLSTM = speechLSTM()
     print ("Model Creation End time:",datetime.datetime.now().time())
+    data = pd.DataFrame(testLSTM.load_data())
+    print ("File Data load End time:", datetime.datetime.now().time())
     #dataframe = pd.DataFrame(testLSTM.load_data_file())
     #dataframe.to_csv("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/Test-TrainingData_SVM.csv")
     dataframe = pd.read_csv("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/Test-TrainingData_SVM.csv",usecols=['0','1','2'])
@@ -162,25 +180,24 @@ def main():
             testLSTM.predict(ftest,ltest,ftrain,feature_name=feature)
             testLSTM.set_Model_Score()
 
-    rand =  random.randint(0,len(dataframe))
-    print dataframe.iloc[rand:rand+1, 0:2]
-    print dataframe.iloc[rand:rand+1,2]
-    emotionData = {}
-    emotionList = testLSTM.predict_emotion(dataframe.iloc[rand:rand+1, 0:2])
+    emotionList=[]
+    if len(data)==0:
+        rand =  random.randint(0,len(dataframe))
+        print dataframe.iloc[rand:rand+1, 0:2]
+        print dataframe.iloc[rand:rand+1,2]
+        emotionList = testLSTM.predict_emotion(dataframe.iloc[rand:rand+1, 0:2])
+    else:
+        emotionList = testLSTM.predict_emotion(data.iloc[0:1,0:2])
     emtionscore = testLSTM.get_Model_Score()
+
     if len(emotionList)==0:
         emotionData = {"Neutral":"1.00"}
     else:
         for emotions in emotionList:
-            emo = emotions_mapping.get(emotions)
-            emoscore = emtionscore.get(emotions)
-            emotionData.update({emo:emoscore})
-
+            emotionData.update({emotions_mapping.get(emotions):emtionscore.get(emotions)})
     print emotionData
-
-
-
+    print ("Pitch and Loudness processing End time:", datetime.datetime.now().time())
+    return emotionData
 
 if __name__ == '__main__':
-
-    main()
+   main()
