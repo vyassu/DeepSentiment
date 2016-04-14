@@ -56,11 +56,12 @@ def build_dict(trainX,testX):
                wordCnt[w] = 1
             else:
                wordCnt[w] +=1
-
        counts = wordCnt.values()
        keys = wordCnt.keys()
        worddict = dict()
        sorted_idx = numpy.argsort(counts)[::-1]
+       print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ Sorted ')
+       print(sorted_idx)
 
        for idx, ss in enumerate(sorted_idx):
           worddict[keys[ss]] = idx+2
@@ -70,8 +71,45 @@ def build_dict(trainX,testX):
   # Transforms sentences into Integer vectors where number represents value corresponding to the word in the Dictionary built above
 def transformData(dataX,dataY,worddict):
        global max_length
-       transformedDataX = [None] * len(dataX)
+       transX = []
        transformedDataY = dataY
+       transformedDataX = [None] * len(dataX)
+       for i in xrange(len(dataX)):
+          transformedDataX[i]=[]
+          dataX[i]= dataX[i].replace(',','')
+          dataX[i]= dataX[i].replace('_','')
+          words = re.sub("[^\w]", " ", dataX[i]).lower().split()
+          for w in words:
+            transformedDataX[i].append(int(w,36))
+          '''
+          print('-------------------------------')
+          print(len(words), ' : ',words)
+          print('###############################')
+          print(type(transformedDataX), ' : ', len(transformedDataX))
+          '''
+
+       for i in transformedDataX:
+          transLen = len(i)
+          if(transLen < max_length): #Pad zeroes to the data vector
+              transX.append(i+[0]*(max_length - transLen))
+          elif transLen > max_length:
+              j = i
+              del j[max_length:]
+              transX.append(j)
+          #transformedData[ind] = [worddict[w] if w in worddict else 1 for w in words]
+          else:
+              transX.append(i)
+       transX = numpy.array(transX)
+       transformedDataY = numpy.array(transformedDataY)
+       transformedDataY = transformedDataY.reshape(transformedDataY.shape[0],1)
+       '''
+       print('###############################')
+       print(type(transX), ' : ', len(transX))
+       print(transX)
+       
+       global max_length
+       transformedDataX = [None] * len(dataX)
+
        for ind,sen in enumerate(dataX):
           words = re.sub("[^\w]", " ", sen).lower().split()
           transformedDataX[ind]=[]
@@ -82,7 +120,7 @@ def transformData(dataX,dataY,worddict):
                 transformedDataX[ind].append(1)
           
        #Converting the length of the transformed data to maximum length
-       transX = []
+
        for i in transformedDataX:
           transLen = len(i)
           if(transLen < max_length): #Pad zeroes to the data vector
@@ -92,11 +130,12 @@ def transformData(dataX,dataY,worddict):
               del j[max_length:]
               transX.append(j)
           #transformedData[ind] = [worddict[w] if w in worddict else 1 for w in words]
-   
+          else:
+              transX.append(i)
        transX = numpy.array(transX)
        transformedDataY = numpy.array(transformedDataY)
        transformedDataY = transformedDataY.reshape(transformedDataY.shape[0],1)
-
+       '''
        return (transX, transformedDataY)
 
 
@@ -118,6 +157,7 @@ def main():
 
    print('Transforming Training and Test Data')
    (TrainX,TrainY) = transformData(trainX,trainY,worddict)
+   '''
    (TestX,TestY) = transformData(testX,testY,worddict)
 
    # Dumping the dictionary to be used for external speech text input
@@ -135,6 +175,9 @@ def main():
    print('Dumping the Test Data')
    cPickle.dump((TestX,TestY),testDump,-1)
    testDump.close()
+   '''
+
+   return 'Success'
 
 if __name__ =='__main__':
    main()

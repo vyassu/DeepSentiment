@@ -18,7 +18,7 @@ class SVMSentiment:
     def __init__(self):
        self.max_length = 500
        self.batch_size=50
-       self.model = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=1,C = 1,tol=0.0001,cache_size=5000)  )
+       self.model = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=5,C = 1.5,tol=0.0001,cache_size=5000)  )
 
 
     def configureSVMModel(self,TrainX,TrainY,validX,validY):
@@ -37,6 +37,7 @@ class SVMSentiment:
        
 
     def evaluateSVMModel(self,TestX,TestY):
+       print('@@@@@@@@@@@@@@@@@@@@@@@@@@@')
        print self.model.score(TestX, TestY)
 
        predicted_data=[]
@@ -92,7 +93,7 @@ def main(arg):
    svm.configureSVMModel(TrainX,TrainY,validX,validY)
 
    #print('Evaluating the Model')
-   svm.evaluateSVMModel(TestX,TestY)
+   svm.evaluateSVMModel(TrainX,TrainY)
 
    if arg=='':
       return
@@ -103,7 +104,9 @@ def main(arg):
       dataX.append(emotfile.read())
       dataY.append('0') #Random output so as to call the pp.transformData function. This is not to be used anywhere
       worddict = cPickle.load(open(cwd+'/dictionary.pkl','rb'))
-      (DataX,DataY) = pp.transformData(dataX,dataY,worddict)       
+      (DataX,DataY) = pp.transformData(dataX,dataY,worddict)
+      print('######################################')
+      print(DataX)       
       prediction = svm.predictSentiment(DataX,DataY)
       return prediction
 
