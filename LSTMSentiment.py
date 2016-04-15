@@ -1,15 +1,11 @@
 import cPickle,os
-import Preprocessor as pp
+import preProcessor as pp
 import numpy
 import re
 from keras.models import Sequential
 from keras.layers.core import Dense, Activation,Dropout,TimeDistributedDense
 from keras.layers.recurrent import LSTM
 from keras.layers.embeddings import Embedding
-
-from sklearn import svm
-from sklearn import cross_validation
-from sklearn.multiclass import OneVsRestClassifier
 
 
 class LSTMSentiment:
@@ -20,56 +16,40 @@ class LSTMSentiment:
        self.future=50
        out_dim = 1
        hidden_neurons = 500
-       self.max_length = 500
+       self.max_length = 100
        max_features = 20000
-       self.batch_size=50
        
        # Initializing a sequential Model
        self.model = Sequential()
        self.model.add(Embedding(max_features, 128, input_length=self.max_length))
        #self.model.add(LSTM(output_dim=128,input_dim=500,activation='relu'))
-       self.model.add(LSTM(output_dim=128,activation ='sigmoid',return_sequences=True))
-       self.model.add(Dropout(0.5))
-       self.model.add(LSTM(400))
-       #self.model.add(Activation("relu"))
+       self.model.add(LSTM(output_dim=128))
+
        self.model.add(Dropout(0.5))
        self.model.add(Dense(1))
-       self.model.add(Activation('tanh'))
-
-       self.model1 = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=1,C = 1,tol=0.0001,cache_size=5000)  )
+       self.model.add(Activation('softplus'))
 
 
-    def configureLSTMModel(self,TrainX,TrainY,validX,validY):
+    def configureLSTMModel(self,TrainX,TrainY):
        print('Configuring the LSTM Model')
-       self.model.compile(loss='binary_crossentropy', optimizer='rmsprop',class_mode="binary")
+       self.model.compile(loss='categorical_crossentropy', optimizer='adadelta', class_mode ="binary")
        #,class_mode ="binary")
-       #self.model.fit(TrainX, TrainY, nb_epoch=5,batch_size=self.batch_size, show_accuracy=True,validation_data=(validX,validY))
+       self.model.fit(TrainX, TrainY, nb_epoch=12,batch_size=64, show_accuracy=True,validation_split=0.2)
+       #,validation_data =(ValidX,ValidY))
 
-       self.model1.fit(TrainX, TrainY)
 
     def evaluateLSTMModel(self,TestX,TestY):
-       #obj_sc,acc = self.model.evaluate(TestX, TestY, batch_size=32,show_accuracy=True)
-       # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-       # print('Objective Score : ',obj_sc)
-       # print('Accuracy : ' ,acc)
-
-       print self.model1.score(TestX, TestY)
-
-       predicted_data=[]
-       for i in range(len(TestX)):
-          predicted_data.append(list([self.model1.predict(TestX[i].reshape(1,-1)),TestY[i]]))
-
-       print "Predicted Data"
-       print predicted_data
-       #print TestY
+       obj_sc,acc = self.model.evaluate(TestX, TestY, batch_size=32,show_accuracy=True)
+       print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+       print('Objective Score : ',obj_sc)
+       print('Accuracy : ' ,acc)
 
 
 
-    def predictSentiment(self,testX,testY):
-       sentiment = self.model.predict_on_batch(testX)
+    def predictSentiment(self,testX):
+       sentiment = self.model.predict_classes(testX,batch_size=32)
        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
        print(sentiment)
-       print testY
 
 
     def getTrainTestData(self):
@@ -86,7 +66,7 @@ class LSTMSentiment:
        (testX,testY)  = cPickle.load(f)
 
        return ((trainX,trainY),(testX,testY))
-
+    '''
     def build_dict(self,trainX,testX):
        sentences =[]
        sentences = trainX + testX
@@ -145,82 +125,101 @@ class LSTMSentiment:
               j = i
               del j[self.max_length:]
               transX.append(j)
-
+          else:
+              transX.append(i)
 
           #transformedData[ind] = [worddict[w] if w in worddict else 1 for w in words]
-       print('############################# Transformed Data ###################')
-       print(transX)
+       #print('############################# Transformed Data ###################')
+       #print(transX)
        return (transX, transformedDataY)
+    
+    def split_Train_Validate(self,tx,ty,validatePercent):
+        validX = []
+        validY = []
+        trainX = []
+        trainY = []
+        n_samples = len(tx)
+        sidx = numpy.random.permutation(n_samples)
+        n_train = int(numpy.round(n_samples * (1. - validatePercent)))
+        validX = [tx[s] for s in sidx[n_train:]]
+        validY = [ty[s] for s in sidx[n_train:]]
+        trainX = [tx[s] for s in sidx[:n_train]]
+        trainY = [ty[s] for s in sidx[:n_train]]
 
+        print('********************** Validation Data *********************')
+        print(len(validX), ' ; ' , len(validY))
+        print('********************** Training Data ***********************')
+        print(len(trainX), ' ; ', len(trainY))
+
+        return ((trainX, trainY),(validX,validY))
 
 
     def prepareData(self,dataX):
        wordList=[]
        for i in xrange(0,len(dataX)):
           wordList[i] = re.sub("[^\w]", " ",  dataX[i]).split()
-          print(dataX[i],' :::::::::::::::::::::   ',wordList[i])
-
-    def getValidationData(self,dataX,dataY):
-
-       return dataX[0:self.batch_size,:],dataY[0:self.batch_size,:]
-
-
+          #print(dataX[i],' :::::::::::::::::::::   ',wordList[i])       
+    '''
+   
 def main():
    print('Initializing the LSTM Model')
    lstm = LSTMSentiment()
    
    print('Retrieving the Training and Test Data')
    path = os.getcwd()
-   ((trainX,trainY),(testX,testY)) = lstm.getTrainTestData()
-
-
-
+   ((TrainX,TrainY),(TestX,TestY)) = lstm.getTrainTestData()
+       
+   '''
    worddict = dict()
    worddict = lstm.build_dict(trainX,testX)
 
    print('Transforming Training and Test Data')
    (TrainX,TrainY) = lstm.transformData(trainX,trainY,worddict)
+   
+   ((TrainX,TrainY),(ValidX,ValidY)) = lstm.split_Train_Validate(TrainX,TrainY,0.1)
 
-   '''
-   print('********************** Training Data *********************')
-   for i in xrange(0,len(TrainX)):
-       print(TrainX[i] , '  :  :  ' , TrainY[i])
+   print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+   #print(len(set([len(a) for a in TrainX] + [len(TrainY)])) )
+   print([len(a) for a in TrainX] + [len(TrainY)])
+   print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+   print(len(set([len(a) for a in ValidX] + [len(ValidY)])) )
+
+
+    
+   print('############################ TRain and TEst Data ######################')
+   print(len(TrainX),' : ',len(TrainY), ': : ',len(TestX),' : ',len(TestY))
+   print(TestX)
+   print(TestY)
+
    
-   print('-------------------------')
-   print('Training Data : Input')
-   for i in TrainX:
-     print(len(i))
-   
-   print('--------------------------')
-   print('Training data : Output')
-   for i in TrainY:
-     print(len(i)) 
-   '''
 
    (TestX,TestY) = lstm.transformData(testX,testY,worddict)
-   
-   ''' 
-   print('********************** Testing Data **********************')
-   for i in xrange(0,len(TestX)):
-       print(len(TestX[i]) , '  :  :  ' , TestY[i])   
-   
-   '''
+
    TrainX = numpy.array(TrainX)
    TrainY = numpy.array(TrainY)
    TrainY = TrainY.reshape(TrainY.shape[0],1)
    
-   print('************* After Numpy transformation *****************')
+   print('************* After Numpy transformation : Training Data  *****************')
    #print(TrainX)
    print(TrainX.shape)
    print('--------------------------------')
    #print(TrainY)
    print(TrainY.shape)
-
-   validX, validY = lstm.getValidationData(TrainX,TrainY)
-
-   lstm.configureLSTMModel(TrainX,TrainY,validX,validY)
-
    
+
+
+   ValidX = numpy.array(ValidX)
+   ValidY = numpy.array(ValidY)
+   ValidY = ValidY.reshape(ValidY.shape[0],1)  
+
+   print('************* After Numpy transformation : Validation Data  *****************')
+   #print(TrainX)
+   print(ValidX.shape)
+   print('--------------------------------')
+   #print(TrainY)
+   print(ValidY.shape)   
+
+
    TestX = numpy.array(TestX)
    TestY = numpy.array(TestY)
    TestY = TestY.reshape(TestY.shape[0],1)
@@ -232,8 +231,15 @@ def main():
    print('--------------------------------')
    #print(TestY)
    print(TestY.shape)
-   
-   lstm.predictSentiment(TestX,TestY)
+   '''
+   print('#######################')
+   print(TrainX)
+
+
+   print('COnfiguring the LSTM model')
+   lstm.configureLSTMModel(TrainX,TrainY)
+
+
    print('Evaluating the Model')
    lstm.evaluateLSTMModel(TestX,TestY)
    
