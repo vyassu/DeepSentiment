@@ -2,8 +2,9 @@ import os
 import cPickle
 import numpy
 import re
+from sklearn.preprocessing import normalize
 
-max_length  = 500
+max_length  = 100
 
 def getData(datasetPath , dataType):
     print('Test')
@@ -29,6 +30,7 @@ def train_test_split(datasetpath,datatype):
          dataX.append(f.read())
          dataY.append('1')
          f.close()
+
 
     # Extracting the Negative sentiments
     negFilePath = os.path.join(filePath,'neg/')
@@ -69,10 +71,10 @@ def build_dict(trainX,testX):
        return worddict
 
   # Transforms sentences into Integer vectors where number represents value corresponding to the word in the Dictionary built above
-def transformData(dataX,dataY,worddict):
+def transformData(dataX,dataY):
        global max_length
        transX = []
-       transformedDataY = dataY
+       transformedDataY = []
        transformedDataX = [None] * len(dataX)
        for i in xrange(len(dataX)):
           transformedDataX[i]=[]
@@ -80,28 +82,39 @@ def transformData(dataX,dataY,worddict):
           dataX[i]= dataX[i].replace('_','')
           words = re.sub("[^\w]", " ", dataX[i]).lower().split()
           for w in words:
-            transformedDataX[i].append(int(w,36))
+            transformedDataX[i].append(float(int(w,36)))
           '''
           print('-------------------------------')
           print(len(words), ' : ',words)
           print('###############################')
           print(type(transformedDataX), ' : ', len(transformedDataX))
           '''
-
-       for i in transformedDataX:
+     
+       for p,i in enumerate(transformedDataX):
           transLen = len(i)
           if(transLen < max_length): #Pad zeroes to the data vector
-              transX.append(i+[0]*(max_length - transLen))
+              None
           elif transLen > max_length:
               j = i
               del j[max_length:]
               transX.append(j)
+              transformedDataY.append(dataY[p])
           #transformedData[ind] = [worddict[w] if w in worddict else 1 for w in words]
           else:
               transX.append(i)
+              transformedDataY.append(dataY[p])              
        transX = numpy.array(transX)
+       #x = np.random.rand(1000)*10
+       transX = transX / numpy.linalg.norm(transX)
+       #norm2 = normalize(x[:,np.newaxis], axis=0).ravel()
+
+       print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@  Normalization @@@@@@@@@@@@@@@@@@@@@')
+       print(type(transX), ': :',transX)
+
        transformedDataY = numpy.array(transformedDataY)
        transformedDataY = transformedDataY.reshape(transformedDataY.shape[0],1)
+       
+
        '''
        print('###############################')
        print(type(transX), ' : ', len(transX))
@@ -156,9 +169,13 @@ def main():
    worddict = build_dict(trainX,testX)
 
    print('Transforming Training and Test Data')
-   (TrainX,TrainY) = transformData(trainX,trainY,worddict)
-   '''
-   (TestX,TestY) = transformData(testX,testY,worddict)
+   (TrainX,TrainY) = transformData(trainX,trainY)
+   
+   (TestX,TestY) = transformData(testX,testY)
+
+
+   print('--------------------- Train -----------------')
+   print(TrainY)
 
    # Dumping the dictionary to be used for external speech text input
    dictDump = open("dictionary.pkl","wb")
@@ -175,7 +192,7 @@ def main():
    print('Dumping the Test Data')
    cPickle.dump((TestX,TestY),testDump,-1)
    testDump.close()
-   '''
+   
 
    return 'Success'
 
