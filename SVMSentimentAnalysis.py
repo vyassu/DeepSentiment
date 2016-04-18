@@ -18,7 +18,7 @@ class SVMSentiment:
     def __init__(self):
        self.max_length = 500
        self.batch_size=50
-       self.model = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=5,C = 1.5,tol=0.0001,cache_size=5000)  )
+       self.model = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=1,C = 1,tol=0.0001,cache_size=5000)  )
 
 
     def configureSVMModel(self,TrainX,TrainY,validX,validY):
@@ -37,7 +37,6 @@ class SVMSentiment:
        
 
     def evaluateSVMModel(self,TestX,TestY):
-       print('@@@@@@@@@@@@@@@@@@@@@@@@@@@')
        print self.model.score(TestX, TestY)
 
        predicted_data=[]
@@ -70,9 +69,6 @@ class SVMSentiment:
 
        return ((trainX,trainY),(testX,testY))
 
-
-
-
     def getValidationData(self,dataX,dataY):
        return dataX[0:self.batch_size,:],dataY[0:self.batch_size,:]
 
@@ -93,7 +89,7 @@ def main(arg):
    svm.configureSVMModel(TrainX,TrainY,validX,validY)
 
    #print('Evaluating the Model')
-   svm.evaluateSVMModel(TrainX,TrainY)
+   svm.evaluateSVMModel(TestX,TestY)
 
    if arg=='':
       return
@@ -104,14 +100,13 @@ def main(arg):
       dataX.append(emotfile.read())
       dataY.append('0') #Random output so as to call the pp.transformData function. This is not to be used anywhere
       worddict = cPickle.load(open(cwd+'/dictionary.pkl','rb'))
-      (DataX,DataY) = pp.transformData(dataX,dataY,worddict)
-      print('######################################')
-      print(DataX)       
+      (DataX,DataY) = pp.transformData(dataX,dataY,worddict)       
       prediction = svm.predictSentiment(DataX,DataY)
       return prediction
 
 
    
 if __name__ =='__main__':
-   arg ='/home/smeera380/spark-1.6.0/SpeechProject/SpeechSentimentAnalysis/aclImdb/emotion.txt'
+   #arg ='/home/smeera380/spark-1.6.0/SpeechProject/SpeechSentimentAnalysis/aclImdb/emotion.txt'
+   arg = "/home/vyassu/Downloads/Telegram Desktop/aclImdb/test/neg1/0_2.txt"
    main(arg)

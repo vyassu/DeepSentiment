@@ -11,14 +11,15 @@ from sklearn import svm
 from sklearn import cross_validation
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.externals import joblib
+import os
 
-class speechLSTM:
+class speechSVM:
     # Initializing the LSTM Model
     def __init__(self):
        self.prevData = 100
        self.batchsize=200
-       self.model = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=1,C = 1,tol=0.0001,cache_size=5000)  )     #self.model = OneVsRestClassifier(LinearSVC(random_state=0))
-       self.working_directory = "/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/"
+       self.model = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=2,C = 0.9,tol=0.0001,cache_size=5000)  )     #self.model = OneVsRestClassifier(LinearSVC(random_state=0))
+       self.working_directory = os.getcwd()+"/"
        self.model_prediction_score = {}
 
     def get_Model_Score(self):
@@ -31,7 +32,9 @@ class speechLSTM:
 
     def load_data_file(self):
         outputdata = []
-        for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/DC/*.wav"):
+
+        #for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/DC/*.wav"):
+        for f in gb.glob(self.working_directory+"AudioData/*/*.wav"):
             frate, inputdata = sc.read(f)
             pitch=lp.getPitch(f,frate)
             emotion = ""
@@ -39,50 +42,9 @@ class speechLSTM:
             filename = f.split("/")[-1].split(".")[0]
             if filename[0] == "s":
                 emotion = filename[0:2]
-                ##emotion = float(int(hashlib.md5(emotion).hexdigest(), 16))
             else:
                 emotion = filename[0]
-                ##emotion =  float(int(hashlib.md5(emotion).hexdigest(), 16))
             outputdata.append(list([loudness,pitch, emotion]))
-        for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/JE/*.wav"):
-            frate, inputdata = sc.read(f)
-            pitch = lp.getPitch(f,frate)
-            emotion = ""
-            loudness = abs(an.loudness(inputdata))
-            filename = f.split("/")[-1].split(".")[0]
-            if filename[0] == "s":
-                emotion = filename[0:2]
-                ##emotion = float(int(hashlib.md5(emotion).hexdigest(), 16))
-            else:
-                emotion = filename[0]
-                ##emotion = float(int(hashlib.md5(emotion).hexdigest(), 16))
-            outputdata.append(list([loudness, pitch, emotion]))
-        for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/JK/*.wav"):
-            frate, inputdata = sc.read(f)
-            pitch = lp.getPitch(f,frate)
-            emotion = ""
-            loudness = abs(an.loudness(inputdata))
-            filename = f.split("/")[-1].split(".")[0]
-            if filename[0] == "s":
-                emotion = filename[0:2]
-                ##emotion = float(int(hashlib.md5(emotion).hexdigest(), 16))
-            else:
-                emotion = filename[0]
-                ##emotion = float(int(hashlib.md5(emotion).hexdigest(), 16))
-            outputdata.append(list([loudness, pitch, emotion]))
-        for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/KL/*.wav"):
-            frate, inputdata = sc.read(f)
-            pitch = lp.getPitch(f,frate)
-            emotion = ""
-            loudness = abs(an.loudness(inputdata))
-            filename = f.split("/")[-1].split(".")[0]
-            if filename[0] == "s":
-                emotion = filename[0:2]
-                ##emotion = float(int(hashlib.md5(emotion).hexdigest(), 16))
-            else:
-                emotion = filename[0]
-                ##emotion = float(int(hashlib.md5(emotion).hexdigest(), 16))
-            outputdata.append(list([loudness, pitch, emotion]))
         return outputdata
 
     def get_train_test_data(self,data,percent_split):
@@ -98,12 +60,12 @@ class speechLSTM:
     def trainNNet(self,data,label,feature_name):
         filenamelist =  gb.glob(self.working_directory+"Models/*")
         filename = "Models/SVM_" + feature_name + ".pkl"
-        print filenamelist.count(self.working_directory+"Models/SVM_"+feature_name+".pkl")
+        #print filenamelist.count(self.working_directory+"Models/SVM_"+feature_name+".pkl")
         if filenamelist.count(self.working_directory+"Models/SVM_"+feature_name+".pkl") == 0:
             X_train, X_test, y_train, y_test = cross_validation.train_test_split(data, label.astype(str), test_size = 0.045, random_state = 0)
             self.model.fit(X_train,y_train)
             print("score",self.model.score(X_test,y_test))
-            print (cross_validation.cross_val_score(self.model, data, label.astype(str), cv =4))
+            #print (cross_validation.cross_val_score(self.model, data, label.astype(str), cv =4))
             joblib.dump(self.model,  self.working_directory+filename)
         else:
             self.model = joblib.load(self.working_directory+filename)
@@ -114,7 +76,7 @@ class speechLSTM:
 
         for i in range(len(ftest)):
             predicted_data.append(self.model.predict(ftest.iloc[i].values.reshape(1,-1)))
-        print predicted_data
+        #print predicted_data
         print self.model.predict(data.iloc[0].values.reshape(1,-1))
         score = self.model.score(ftest, ltest)
         print("score", score)
@@ -133,10 +95,10 @@ class speechLSTM:
             print emotion_list
         return emotion_list
 
-    def load_data(self):
+    def load_data(self,filename):
         datadirectory = self.working_directory+"Data/"
         outputdata=[]
-        for f in gb.glob(datadirectory+"*.wav"):
+        for f in gb.glob(filename):#datadirectory+"*.wav"):
             frate, inputdata = sc.read(f)
             pitch = lp.getPitch(f,frate)
             emotion = ""
@@ -150,54 +112,58 @@ class speechLSTM:
             outputdata.append(list([loudness, pitch, emotion]))
         return outputdata
 
-def main():
+def main(filename):
     print ("Pitch and Loudness processing Start time:", datetime.datetime.now().time())
     attributes =['a','d','h','su','sa','f']
     emotionData = {}
     emotions_mapping = {"a":"Angry","d":"Disgust","h":"happy","su":"surprise","sa":"sadness","f":"fear"}
-    working_directory = "/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/"
-
-    print ("Model Creation Start time:",datetime.datetime.now().time())
-    testLSTM = speechLSTM()
-    print ("Model Creation End time:",datetime.datetime.now().time())
-    data = pd.DataFrame(testLSTM.load_data())
+    working_directory = os.getcwd()
+    working_directory = working_directory+"/"
+    print ("SVM Model creation start:", datetime.datetime.now().time())
+    svmnnet = speechSVM()
+    print ("SVM MOdel creation end:", datetime.datetime.now().time())
+    data = pd.DataFrame(svmnnet.load_data(filename))
     print ("File Data load End time:", datetime.datetime.now().time())
-    #dataframe = pd.DataFrame(testLSTM.load_data_file())
+    print ("Data preprocessing Start time:", datetime.datetime.now().time())
+    #dataframe = pd.DataFrame(svmnnet.load_data_file())
+    print ("Data preprocessing End time:", datetime.datetime.now().time())
+    #print len(dataframe)
     #dataframe.to_csv("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/Test-TrainingData_SVM.csv")
-    dataframe = pd.read_csv("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/Test-TrainingData_SVM.csv",usecols=['0','1','2'])
+    dataframe = pd.read_csv(working_directory+"Test-TrainingData_SVM.csv",usecols=['0','1','2'])
     print dataframe.groupby(['2']).count()
     modelList =  gb.glob(working_directory+"Models/*.pkl")
+
     if len(modelList)==0:
         for feature in attributes:
             df= dataframe.groupby(['2']).get_group(feature)
             df1 = dataframe.groupby(['2']).get_group('n')
             df1 = pd.concat([df, df1],ignore_index=False)
             df1 = df1.replace('n',"NA")
-            print ("File Data load End time:",datetime.datetime.now().time())
-            ftest, ltest, ftrain, ltrain =  testLSTM.get_train_test_data(df1,0.05)
-            print ("Test and Train data created:", datetime.datetime.now().time())
-            testLSTM.trainNNet(ftrain,ltrain,feature_name=feature)
-            testLSTM.predict(ftest,ltest,ftrain,feature_name=feature)
-            testLSTM.set_Model_Score()
+            ftest, ltest, ftrain, ltrain =  svmnnet.get_train_test_data(df1,0.05)
+            print ("SVM Training started:", datetime.datetime.now().time())
+            svmnnet.trainNNet(ftrain,ltrain,feature_name=feature)
+            print ("SVM Training ended:", datetime.datetime.now().time())
+            svmnnet.predict(ftest,ltest,ftrain,feature_name=feature)
+            svmnnet.set_Model_Score()
 
     emotionList=[]
     if len(data)==0:
         rand =  random.randint(0,len(dataframe))
         print dataframe.iloc[rand:rand+1, 0:2]
         print dataframe.iloc[rand:rand+1,2]
-        emotionList = testLSTM.predict_emotion(dataframe.iloc[rand:rand+1, 0:2])
+        emotionList = svmnnet.predict_emotion(dataframe.iloc[rand:rand+1, 0:2])
     else:
-        emotionList = testLSTM.predict_emotion(data.iloc[0:1,0:2])
-    emtionscore = testLSTM.get_Model_Score()
+        emotionList = svmnnet.predict_emotion(data.iloc[0:1,0:2])
+    emtionscore = svmnnet.get_Model_Score()
+    print emtionscore
 
     if len(emotionList)==0:
         emotionData = {"Neutral":"1.00"}
     else:
         for emotions in emotionList:
             emotionData.update({emotions_mapping.get(emotions):emtionscore.get(emotions)})
-    print emotionData
     print ("Pitch and Loudness processing End time:", datetime.datetime.now().time())
     return emotionData
 
 if __name__ == '__main__':
-   main()
+   main("/home/vyassu/PycharmProjects/DeepSentiment/Data/sp04.wav")
