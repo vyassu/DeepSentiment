@@ -14,49 +14,56 @@ from sklearn.externals import joblib
 import os
 
 class speechSVM:
-    # Initializing the LSTM Model
+    # Initializing the SVM Model
     def __init__(self):
-       self.prevData = 100
-       self.batchsize=200
        self.model = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=2,C = 0.9,tol=0.0001,cache_size=5000)  )     #self.model = OneVsRestClassifier(LinearSVC(random_state=0))
        self.working_directory = os.getcwd()+"/"
        self.model_prediction_score = {}
 
+    # Function to read the emotion prediction probability
     def get_Model_Score(self):
         filename = self.working_directory + "Models/scorefile.txt"
         return pickle.load(open(filename, "rb"))
 
+    # Function to save Emotion prediction probability
     def set_Model_Score(self):
         filename = self.working_directory+"Models/scorefile.txt"
         pickle.dump(self.model_prediction_score, open(filename, "wb"))
 
+    #  Function to load the wav dataset and extract the features from it
     def load_data_file(self):
-        outputdata = []
+        outputdata = []         # Variable to store the speech features and emotions
 
-        #for f in gb.glob("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/DC/*.wav"):
+        # Looping all the wave files present in the path
         for f in gb.glob(self.working_directory+"AudioData/*/*.wav"):
             frate, inputdata = sc.read(f)
+            # Extracting the pitch from the wav file using Aubio speech API
             pitch=lp.getPitch(f,frate)
-            emotion = ""
+            # Extracting loudness of the voice from the Wave file
             loudness = abs(an.loudness(inputdata))
+
+            # Extracting the emotion type from the wave file only for training stage
             filename = f.split("/")[-1].split(".")[0]
+
+            # Condition to differentiate the various types of emotions
             if filename[0] == "s":
                 emotion = filename[0:2]
             else:
                 emotion = filename[0]
+            # Creating the dataset consisting of list of features and corresponding emotion type
             outputdata.append(list([loudness,pitch, emotion]))
         return outputdata
 
+    # Function to split test and train data
     def get_train_test_data(self,data,percent_split):
         noOfSamples = len(data)*(1-percent_split)
-        print("No of Samples", noOfSamples)
         test =  data.iloc[0:int(noOfSamples), 2:]
-        test1=[]
+        testsample=[]
         for i in range(len(test)):
-            test1 = np.append(test1,test.iloc[i].values[0])
+            testsample = np.append(testsample,test.iloc[i].values[0])
+        return data.iloc[int(noOfSamples):, 0:2], data.iloc[int(noOfSamples):, 2:],data.iloc[0:int(noOfSamples), 0:2],np.array(testsample)
 
-        return data.iloc[int(noOfSamples):, 0:2], data.iloc[int(noOfSamples):, 2:],data.iloc[0:int(noOfSamples), 0:2],np.array(test1)
-
+    # Function to fit the SVM Model
     def trainNNet(self,data,label,feature_name):
         filenamelist =  gb.glob(self.working_directory+"Models/*")
         filename = "Models/SVM_" + feature_name + ".pkl"
@@ -71,17 +78,17 @@ class speechSVM:
             self.model = joblib.load(self.working_directory+filename)
             print "model already exists for feature "+feature_name+" !! training exiting"
 
+    # Function h to predict batch input
     def predict(self,ftest,ltest,data,feature_name):
         predicted_data = []
 
+        # Loop to traverse through the Test data and predict the corresponding
         for i in range(len(ftest)):
             predicted_data.append(self.model.predict(ftest.iloc[i].values.reshape(1,-1)))
-        #print predicted_data
-        print self.model.predict(data.iloc[0].values.reshape(1,-1))
         score = self.model.score(ftest, ltest)
-        print("score", score)
         self.model_prediction_score.update({feature_name:score})
 
+    # Function to predict single input data
     def predict_emotion(self,data):
         emotion_list=[]
         for modelfilepath in gb.glob(self.working_directory+"Models/*.pkl"):
@@ -95,45 +102,55 @@ class speechSVM:
             print emotion_list
         return emotion_list
 
+    # converting a single wave file into a List of speech properties
     def load_data(self,filename):
-        datadirectory = self.working_directory+"Data/"
         outputdata=[]
-        for f in gb.glob(filename):#datadirectory+"*.wav"):
+        # Loop to traverse through the input data file path
+        for f in gb.glob(filename):
             frate, inputdata = sc.read(f)
             pitch = lp.getPitch(f,frate)
-            emotion = ""
             loudness = abs(an.loudness(inputdata))
             filename = f.split("/")[-1].split(".")[0]
             if filename[0] == "s":
                 emotion = filename[0:2]
             else:
                 emotion = filename[0]
-
             outputdata.append(list([loudness, pitch, emotion]))
         return outputdata
 
-def main(filename):
+def main(filename,starttraining=False):
     print ("Pitch and Loudness processing Start time:", datetime.datetime.now().time())
+    # Variable to store the various speech emotion alphabet
     attributes =['a','d','h','su','sa','f']
     emotionData = {}
+    # Variable to store emotion and alphabet mapping
     emotions_mapping = {"a":"Angry","d":"Disgust","h":"happy","su":"surprise","sa":"sadness","f":"fear"}
+
+    # Setting the working directory path
     working_directory = os.getcwd()
     working_directory = working_directory+"/"
+
     print ("SVM Model creation start:", datetime.datetime.now().time())
-    svmnnet = speechSVM()
+    svmnnet = speechSVM()                                                       # Initializing the SpeechSVM class
     print ("SVM MOdel creation end:", datetime.datetime.now().time())
-    data = pd.DataFrame(svmnnet.load_data(filename))
+    data = pd.DataFrame(svmnnet.load_data(filename))                            # Invoking function to extract information from a single WAV file
     print ("File Data load End time:", datetime.datetime.now().time())
     print ("Data preprocessing Start time:", datetime.datetime.now().time())
-    #dataframe = pd.DataFrame(svmnnet.load_data_file())
+
+    # Condition check for initiating dataextraction for training stage and saving it as a CSV file
+    if starttraining == True:
+        dataframe = pd.DataFrame(svmnnet.load_data_file())
+        dataframe.to_csv(working_directory+"Test-TrainingData_SVM.csv")
+
     print ("Data preprocessing End time:", datetime.datetime.now().time())
-    #print len(dataframe)
-    #dataframe.to_csv("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/Test-TrainingData_SVM.csv")
     dataframe = pd.read_csv(working_directory+"Test-TrainingData_SVM.csv",usecols=['0','1','2'])
-    print dataframe.groupby(['2']).count()
+
+    #Variable to store any saved SVM models
     modelList =  gb.glob(working_directory+"Models/*.pkl")
 
+    # Condition to check if any saved SVM model exists
     if len(modelList)==0:
+        # Loop to run multiple Linear SVM classifications
         for feature in attributes:
             df= dataframe.groupby(['2']).get_group(feature)
             df1 = dataframe.groupby(['2']).get_group('n')
@@ -147,16 +164,18 @@ def main(filename):
             svmnnet.set_Model_Score()
 
     emotionList=[]
+    # Condition to check whether input data exits if not run default configuration
     if len(data)==0:
         rand =  random.randint(0,len(dataframe))
-        print dataframe.iloc[rand:rand+1, 0:2]
-        print dataframe.iloc[rand:rand+1,2]
         emotionList = svmnnet.predict_emotion(dataframe.iloc[rand:rand+1, 0:2])
     else:
         emotionList = svmnnet.predict_emotion(data.iloc[0:1,0:2])
+
+    # Loading the emotion score from the file
     emtionscore = svmnnet.get_Model_Score()
     print emtionscore
 
+    # Condition to check whether a valid emotion has been predicted if not initialize the final data with neutral as emotion
     if len(emotionList)==0:
         emotionData = {"Neutral":"1.00"}
     else:
@@ -166,4 +185,4 @@ def main(filename):
     return emotionData
 
 if __name__ == '__main__':
-   main("/home/vyassu/PycharmProjects/DeepSentiment/Data/sp04.wav")
+   main("/home/vyassu/PycharmProjects/DeepSentiment/Data/sp04.wav",False)
