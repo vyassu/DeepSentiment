@@ -2,38 +2,46 @@ from aubio import source
 from numpy import array,ma
 import aubio as au
 
+# Function  to get the pitch from a wav file
 def getPitch(filename,frate):
     from aubio import pitch
     downsample = 1
     samplerate = frate / downsample
-    win_s = 1024 / downsample # fft size
+    window = 1024 / downsample # fft size
 
-    hop_s = 256/ downsample # hop size
-    s = source(filename, samplerate, hop_s)
-    samplerate = s.samplerate
+    hopsize = 256/ downsample
+    sound = source(filename, samplerate, hopsize)
+    samplerate = sound.samplerate
     tolerance = 0.8
 
-    pitch_o = pitch("yin", win_s, hop_s, samplerate)
-    pitch_o.set_unit("midi")
-    pitch_o.set_tolerance(tolerance)
+    # Setting the FFT Algorithm
+    pitchlist = pitch("yin", window, hopsize, samplerate)
+    pitchlist.set_unit("midi")
+
+    # Setting the tolerance level to 80 percent
+    pitchlist.set_tolerance(tolerance)
     total_frames = 0
     pitches = []
     confidences=[]
     while True:
-        samples, read = s()
-        pitch = pitch_o(samples)[0]
-        confidence = pitch_o.get_confidence()
+        samples, read = sound()
+        pitch = pitchlist(samples)[0]
+        confidence = pitchlist.get_confidence()
         confidences+=[confidence]
         pitches += [pitch]
         total_frames += read
-        if read < hop_s: break
+        if read < hopsize: break
+
+    # getting the file list of pitch from various sound samples
     pitches = array(pitches[1:])
     confidences = array(confidences[1:])
     cleaned_pitches = pitches
+
+    # EXtracting all those pitch levels that are above the confidence values
     cleaned_pitches = ma.masked_where(confidences < tolerance, cleaned_pitches,copy=False)
     cleaned_pitches = cleaned_pitches[~cleaned_pitches.mask]
 
-    print cleaned_pitches
+    # condition to check whether there exists a fundamental frequency for the given sound signal
     if len(cleaned_pitches)==0:
         maxValue = 0
     else:
@@ -42,6 +50,4 @@ def getPitch(filename,frate):
 
 if __name__=="__main__":
     print getPitch("/home/vyassu/PycharmProjects/DeepSentiment/Data/sp04.wav",8000)
-    #print getPitch("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/DC/d12.wav")
-    #print getPitch("/media/vyassu/OS/Users/vyas/Documents/Assigments/BigData/AudioData/DC/su12.wav")
-
+    
