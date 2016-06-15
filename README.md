@@ -3,7 +3,7 @@ Speech Emotion Recognition using Fast Fourier Transform and LSTM neural network
 
 This module aims at extracting emotion components within human speech like Pitch and Loudness. These parameters are used to predict the emotion state of the speaker in question.
 
-## Prerequiste
+## Prerequisites
 The following are the prerequsite python modules that needs to be installed to execute the Standalone component:
 ```
 sudo pip install numpy 
