@@ -1,5 +1,5 @@
 # DeepSentiment
-Speech Emotion Recognition using DWT and RNN
+Speech Emotion Recognition using Fast Fourier Transform and LSTM neural network
 
 This module aims at extracting emotion components within human speech like Pitch and Loudness. These parameters are used to predict the emotion state of the speaker in question.
 
