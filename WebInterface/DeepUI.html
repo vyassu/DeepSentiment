@@ -1,0 +1,41 @@
+<HTML>
+	<HEAD>
+		<title>Deepsentiment UI</title>
+		<link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+		<link rel="stylesheet" type="text/css" href="css/deepUI.css">
+		<script type="text/javascript" src="js/jQuery.js"></script>
+	</HEAD>
+	<BODY background="featr.jpg">
+		<div>
+			<div class="row headings">
+				Deep Sentiment
+			</div>
+			<div class="row"> 
+			   <div class="col-md-12 normal-text">
+			   Click below to record your voice
+			   </div>
+			</div>
+			<div class="row">
+			   <div class="col-md-12 pic-align">
+			   	<img src="recoder_icon.jpg" onclick="recordSound()" />
+			   </div>
+			</div>
+			<div class="row">
+			   <div class="col-md-12">
+			   	 <canvas width="1000" height="100" class="visualization"></canvas>
+			   </div>
+			</div>
+			<div class="row">
+				<div class="col-md-12">
+			        <h1 style="text-align:center;">OR</h1>
+			    </div>
+			    <div class="col-md-12 normal-text">Upload WAV file</div>
+			    <div class="col-md-12 items-align ">
+			    	<input type="file" id="filedata"/>
+			    	<button type="submit" onclick="sendData()">Upload</button>
+				</div>
+			</div>
+		</div>
+		<script type="text/javascript" src="js/deepui.js"></script>
+	</BODY>
+</HTML>
