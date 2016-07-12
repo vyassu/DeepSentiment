@@ -38,7 +38,7 @@ def webservice():
         for data in filecontents:
             f.write(data)
     f.close()
-    resultData = Controller.main(absfile)
+    resultData = Controller.main(absfile,False)
     print resultData
 
     emotion = "You are feeling "
@@ -70,7 +70,7 @@ def fileservice():
     with open(absfile, "wb") as f:
         f.write(soundata)
     f.close()
-    resultData = Controller.main(absfile)
+    resultData = Controller.main(absfile,False)
     print resultData
 
     emotion = "You are feeling "
