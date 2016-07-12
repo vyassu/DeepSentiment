@@ -1,0 +1,29 @@
+.headings{
+	text-align: center;
+	font-size: 48px;
+	color: white;
+
+}
+.items-align{ 
+	position: relative;
+	left: 40%;
+}
+.pic-align{ 
+	position: relative;
+	margin-top: 40px;
+	margin-left: 40%;
+	width: 50%;
+
+}
+.normal-text
+{
+	font-size: 24px;
+	text-align: center;
+	color: white;
+}
+
+.visualization
+{
+	background: black;
+	margin-left: 150px;
+}
