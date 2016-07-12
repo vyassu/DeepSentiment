@@ -22,7 +22,7 @@
 			</div>
 			<div class="row">
 			   <div class="col-md-12">
-			   	 <canvas width="400" height="100" class="visualization"></canvas>
+			   	 <canvas width="1000" height="100" class="visualization"></canvas>
 			   </div>
 			</div>
 			<div class="row">
@@ -31,7 +31,8 @@
 			    </div>
 			    <div class="col-md-12 normal-text">Upload WAV file</div>
 			    <div class="col-md-12 items-align ">
-			    	<input type="file" accept="audio/*;capture=microphone">
+			    	<input type="file" id="filedata"/>
+			    	<button type="submit" onclick="sendData()">Upload</button>
 				</div>
 			</div>
 		</div>
