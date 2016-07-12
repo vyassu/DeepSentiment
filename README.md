@@ -1,5 +1,5 @@
 # DeepSentiment
-Speech Emotion Recognition using Fast Fourier Transform and LSTM neural network
+Speech Emotion Recognition using Fast Fourier Transform and Support Vector Machine
 
 This module aims at extracting emotion components within human speech like Pitch and Loudness. These parameters are used to predict the emotion state of the speaker in question.
 
