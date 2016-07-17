@@ -12,4 +12,6 @@ sudo pip install pandas
 sudo pip install SpeechRecognition
 sudo pip install -U scikit-learn
 ```
-2.) Install Aubio following the instructions in the [ link ](http://aubio.org/)
+2.) Follow the instructions mentioned in the [ link ](http://aubio.org/) to install Aubio(pitch extraction library).
+
+3.) If you want to train your own model, then install the latest version of [ Apache Spark ] (http://spark.apache.org/downloads.html)
