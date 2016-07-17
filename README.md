@@ -15,3 +15,11 @@ sudo pip install -U scikit-learn
 2.) Follow the instructions mentioned in the [ link ](http://aubio.org/) to install Aubio(pitch extraction library).
 
 3.) If you want to train your own model, then install the latest version of [ Apache Spark ] (http://spark.apache.org/downloads.html)
+
+## Downloads
+Clone the repository using the below mentioned command and execute the bash script.
+```
+git clone https://github.com/vyassu/DeepSentiment.git
+cd DeepSentimemt
+$./
+```
