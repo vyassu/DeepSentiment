@@ -1,4 +1,4 @@
-from flask import Flask,make_response,request
+from flask import Flask,make_response,request,render_template
 from flask_cors import CORS, cross_origin
 import numpy as np
 import scipy.io.wavfile as sc
@@ -8,6 +8,13 @@ import Controller
 import datetime,struct
 senti = Flask(__name__)
 CORS(senti)
+
+
+@senti.route('/deepsentiment', methods=['GET', 'POST'])
+@cross_origin()
+def login():
+    resp =  render_template('DeepUI.html')
+    return resp
 
 def convert_float32_wav_file(data,samplerate):
     byte_count = (len(data)) * 4
@@ -22,7 +29,25 @@ def convert_float32_wav_file(data,samplerate):
         wav_file += struct.pack("<f", dat)
     return wav_file
 
+def getSentiData(resultData):
+    emotion = "You are feeling "
+    i=0
+    for key in resultData.keys():
+        if key != "data":
+            if ((resultData[key]==1.0)) :
+               if i < len(resultData.keys())-1:
+                    emotion= emotion+key+" "
+               else:
+                    emotion = emotion+"OR "+key+"."
+        i=i+1;
+    finalData ={}
+    finalData["input"] = resultData["data"]
+    finalData["result"] = emotion
+    return finalData
+
+
 @senti.route('/deepsentimentweb', methods=['GET', 'POST'])
+@cross_origin()
 def webservice():
     inputdatetime = datetime.datetime.now().time().isoformat()
     absfile = "./Data/"+str(inputdatetime).replace(":","").replace(".","")+".wav"
@@ -39,31 +64,16 @@ def webservice():
             f.write(data)
     f.close()
     resultData = Controller.main(absfile,False)
-    print resultData
-
-    emotion = "You are feeling "
-    i = 0
-    for key in resultData.keys():
-        if key != "data":
-            if ((resultData[key] == 1.0)):
-                if i < len(resultData.keys()) - 1:
-                    emotion = emotion + key + " "
-                else:
-                    emotion = emotion + "OR " + key + "."
-        i = i + 1;
-    finalData = {}
-    finalData["input"] = resultData["data"]
-    finalData["result"] = emotion
-    resp = make_response(json.dumps(finalData))
+    finalData = getSentiData(resultData)
+    resp = make_response(json.dumps({"response":finalData}))
     resp.headers['Content-Type'] = "application/json"
-    resp.headers['Access-Control-Allow-Origin'] = "*"
     return resp
 
 @senti.route('/deepsentifile', methods=['GET', 'POST'])
+@cross_origin()
 def fileservice():
     inputdatetime = datetime.datetime.now().time().isoformat()
     absfile = "./Data/" + str(inputdatetime).replace(":", "").replace(".", "") + ".wav"
-
     soundata = request.data
     soundata = base64.b64decode(soundata[soundata.index(",")+1:])
 
@@ -71,24 +81,9 @@ def fileservice():
         f.write(soundata)
     f.close()
     resultData = Controller.main(absfile,False)
-    print resultData
-
-    emotion = "You are feeling "
-    i=0
-    for key in resultData.keys():
-        if key != "data":
-            if ((resultData[key]==1.0)) :
-               if i < len(resultData.keys())-1:
-                    emotion= emotion+key+" "
-               else:
-                    emotion = emotion+"OR "+key+"."
-        i=i+1;
-    finalData ={}
-    finalData["input"] = resultData["data"]
-    finalData["result"] = emotion
-    resp = make_response(json.dumps(finalData))
+    finalData = getSentiData(resultData)
+    resp = make_response(json.dumps({"response":finalData}))
     resp.headers['Content-Type'] = "application/json"
-    resp.headers['Access-Control-Allow-Origin'] = "*"
     return resp
 
 def main():
