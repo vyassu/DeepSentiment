@@ -7,7 +7,7 @@ then
 	mkdir inputdata
 fi
 
-cp - R ../../WebInterface/* .
+cp -R ../../WebInterface/* .
 
 python ./webservice.py
 echo "Webservice started!! Use URL http://localhost:5000/deepsentiment"
