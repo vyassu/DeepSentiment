@@ -8,6 +8,5 @@ then
 fi
 
 cp -R ../../WebInterface/* .
-
-python ./webservice.py
 echo "Webservice started!! Use URL http://localhost:5000/deepsentiment"
+python ./webservice.py
