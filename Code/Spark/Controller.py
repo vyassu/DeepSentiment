@@ -1,5 +1,5 @@
 import SpeechNetSVMMulticlass as sp
-import SVMSentimentAnalysis as l
+import SVMSentimentAnalysis_Spark as l
 import speech_recognition as sr
 import datetime,sys
 import logging
