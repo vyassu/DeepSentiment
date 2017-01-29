@@ -11,6 +11,7 @@ sudo pip install scipy
 sudo pip install pandas
 sudo pip install SpeechRecognition
 sudo pip install -U scikit-learn
+sudo pip install findspark
 ```
 Note: There may be other prerequiste library files that needs to installed before installing the above mentioned modules.
 
@@ -22,7 +23,8 @@ Note: There may be other prerequiste library files that needs to installed befor
 Clone the repository using the below mentioned command and execute the bash script.
 ```
 git clone https://github.com/vyassu/DeepSentiment.git
-cd DeepSentimemt
+cd DeepSentimemt/Code/StandAlone
+chmod 755 script.sh
 $./script.sh
 ```
 
@@ -30,9 +32,14 @@ $./script.sh
 
 There are two ways to run the program
 
-1.) HTML/CSS userinterface through which you can record your voice and get the output, or upload a WAV file. For this go to webinterface folder and run DeepUI.html
-
+1.) HTML/CSS userinterface through which you can record your voice and get the output, or upload a WAV file. in your browser paste the below 
+```
+URL http://localhost:5000/deepsentiment
+```
 2.) Execute the below mentioned command 
 ```
-python Controller.py <wav absolute filepath>
+      python Controller.py
 ```
+Follow the directions for commandline testing.
+
+##Note: The record voice feature is still in development stage!!
