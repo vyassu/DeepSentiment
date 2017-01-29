@@ -1,0 +1,68 @@
+.headings{
+	text-align: center;
+	font-size: 48px;
+	color: white;
+
+}
+.items-align{ 
+	position: relative;
+	left: 40%;
+}
+.pic-align{ 
+	position: relative;
+	margin-top: 40px;
+	margin-left: 40%;
+	width: 50%;
+
+}
+.normal-text
+{
+	font-size: 24px;
+	text-align: center;
+	color: white;
+}
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1; 
+    padding-top: 100px; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgb(0,0,0); 
+    background-color: rgba(0,0,0,0.8); 
+}
+
+.modal-content {
+    background-color: #fefefe;
+    font-family: Arial, Helvetica, sans-serif;
+    margin: auto;
+    width: 70%; /* Half width */
+    padding: 20px;
+    border: 10px solid #888;
+    font-size: 15px;
+    line-height: 100%;
+    overflow-x:auto;
+}
+
+.close {
+    color: #aaaaaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.visualization
+{
+    background: black;
+    margin-left: 150px;
+}
