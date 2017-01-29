@@ -9,11 +9,13 @@ from sklearn import svm
 from sklearn import cross_validation
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.externals import joblib
-import os
+import os,logging
 
 class speechSVM:
     # Initializing the SVM Model
     def __init__(self):
+       logging.getLogger("SpeechNetSVM")
+       logging.basicConfig(level=logging.DEBUG)
        self.model = OneVsRestClassifier(svm.SVC(kernel='rbf',gamma=2,C = 0.9,tol=0.0001,cache_size=5000)  )     #self.model = OneVsRestClassifier(LinearSVC(random_state=0))
        self.working_directory = os.getcwd()+"/"
        self.model_prediction_score = {}
@@ -29,11 +31,11 @@ class speechSVM:
         pickle.dump(self.model_prediction_score, open(filename, "wb"))
 
     #  Function to load the wav dataset and extract the features from it
-    def load_data_file(self):
+    def load_data_file(self,audiodatapath):
         outputdata = []         # Variable to store the speech features and emotions
 
         # Looping all the wave files present in the path
-        for f in gb.glob(self.working_directory+"AudioData/*/*.wav"):
+        for f in gb.glob(audiodatapath):
             frate, inputdata = sc.read(f)
             # Extracting the pitch from the wav file using Aubio speech API
             pitch=lp.getPitch(f,frate)
@@ -65,21 +67,19 @@ class speechSVM:
     def trainNNet(self,data,label,feature_name):
         filenamelist =  gb.glob(self.working_directory+"Models/*")
         filename = "Models/SVM_" + feature_name + ".pkl"
-        #print filenamelist.count(self.working_directory+"Models/SVM_"+feature_name+".pkl")
         if filenamelist.count(self.working_directory+"Models/SVM_"+feature_name+".pkl") == 0:
             X_train, X_test, y_train, y_test = cross_validation.train_test_split(data, label.astype(str), test_size = 0.045, random_state = 0)
             self.model.fit(X_train,y_train)
-            print("score",self.model.score(X_test,y_test))
+            logging.debug("Model Train Score for Feature %s : %s",feature_name,self.model.score(X_test,y_test))
             #print (cross_validation.cross_val_score(self.model, data, label.astype(str), cv =4))
             joblib.dump(self.model,  self.working_directory+filename)
         else:
             self.model = joblib.load(self.working_directory+filename)
-            print "model already exists for feature "+feature_name+" !! training exiting"
+            logging.info( "model already exists for feature "+feature_name+" !! training exiting")
 
     # Function h to predict batch input
     def predict(self,ftest,ltest,data,feature_name):
         predicted_data = []
-
         # Loop to traverse through the Test data and predict the corresponding
         for i in range(len(ftest)):
             predicted_data.append(self.model.predict(ftest.iloc[i].values.reshape(1,-1)))
@@ -90,14 +90,11 @@ class speechSVM:
     def predict_emotion(self,data):
         emotion_list=[]
         for modelfilepath in gb.glob(self.working_directory+"Models/*.pkl"):
-            print modelfilepath
             emotion = modelfilepath.split("/")[-1].split(".")[0]
             model = joblib.load(modelfilepath)
             modelprediction = model.predict(data.values.reshape(1,-1))
-            print modelprediction
             if modelprediction[0] !='NA':
                 emotion_list.append(modelprediction[0])
-            print emotion_list
         return emotion_list
 
     # converting a single wave file into a List of speech properties
@@ -116,8 +113,10 @@ class speechSVM:
             outputdata.append(list([loudness, pitch, emotion]))
         return outputdata
 
-def main(filename,starttraining=False):
-    print ("Pitch and Loudness processing Start time:", datetime.datetime.now().time())
+def main(filename,starttraining,log_level,*args):
+    logging.basicConfig(level= log_level)
+    logging.info("Finished Loading SpeechNetSVMMulticlass Module")
+    logging.debug("Pitch and Loudness processing Start time: %s", datetime.datetime.now().time())
     # Variable to store the various speech emotion alphabet
     attributes =['a','d','h','su','sa','f']
     emotionData = {}
@@ -128,21 +127,22 @@ def main(filename,starttraining=False):
     working_directory = os.getcwd()
     working_directory = working_directory+"/"
 
-    print ("SVM Model creation start:", datetime.datetime.now().time())
+    logging.debug("SVM Model creation start: %s", datetime.datetime.now().time())
     svmnnet = speechSVM()                                                       # Initializing the SpeechSVM class
-    print ("SVM MOdel creation end:", datetime.datetime.now().time())
+    logging.debug("SVM Model creation end: %s", datetime.datetime.now().time())
     data = pd.DataFrame(svmnnet.load_data(filename))                            # Invoking function to extract information from a single WAV file
-    print ("File Data load End time:", datetime.datetime.now().time())
-    print ("Data preprocessing Start time:", datetime.datetime.now().time())
+    logging.debug("File Data load End time: %s", datetime.datetime.now().time())
+    logging.debug("Data preprocessing Start time: %s", datetime.datetime.now().time())
 
     # Condition check for initiating dataextraction for training stage and saving it as a CSV file
     if starttraining == True:
-        dataframe = pd.DataFrame(svmnnet.load_data_file())
-        dataframe.to_csv(working_directory+"Test-TrainingData_SVM.csv")
+        logging.info("Speech Model Training Started!!")
+        dataframe = pd.DataFrame(svmnnet.load_data_file(args[0]))
+        dataframe.to_csv("./Test-TrainingData_SVM.csv")
 
-    print ("Data preprocessing End time:", datetime.datetime.now().time())
-    dataframe = pd.read_csv(working_directory+"Test-TrainingData_SVM.csv",usecols=['0','1','2'])
-
+    logging.debug ("Data preprocessing End time: %s", datetime.datetime.now().time())
+    dataframe = pd.read_csv("./Test-TrainingData_SVM.csv",usecols=['0','1','2'])
+    logging.info("Finished Loading Test-Train data from file")
     #Variable to store any saved SVM models
     modelList =  gb.glob(working_directory+"Models/*.pkl")
 
@@ -155,9 +155,9 @@ def main(filename,starttraining=False):
             df1 = pd.concat([df, df1],ignore_index=False)
             df1 = df1.replace('n',"NA")
             ftest, ltest, ftrain, ltrain =  svmnnet.get_train_test_data(df1,0.05)
-            print ("SVM Training started:", datetime.datetime.now().time())
+            logging.debug("SVM Training started: %s", datetime.datetime.now().time())
             svmnnet.trainNNet(ftrain,ltrain,feature_name=feature)
-            print ("SVM Training ended:", datetime.datetime.now().time())
+            logging.debug("SVM Training ended: %s", datetime.datetime.now().time())
             svmnnet.predict(ftest,ltest,ftrain,feature_name=feature)
             svmnnet.set_Model_Score()
 
@@ -171,7 +171,7 @@ def main(filename,starttraining=False):
 
     # Loading the emotion score from the file
     emtionscore = svmnnet.get_Model_Score()
-    print emtionscore
+    logging.debug("Score for features: %s",emtionscore)
 
     # Condition to check whether a valid emotion has been predicted if not initialize the final data with neutral as emotion
     if len(emotionList)==0:
@@ -179,7 +179,8 @@ def main(filename,starttraining=False):
     else:
         for emotions in emotionList:
             emotionData.update({emotions_mapping.get(emotions):emtionscore.get(emotions)})
-    print ("Pitch and Loudness processing End time:", datetime.datetime.now().time())
+    logging.debug("Pitch and Loudness processing End time: %s", datetime.datetime.now().time())
+    logging.info("Emotion Data: %s",emotionData)
     return emotionData
 
 if __name__ == '__main__':
