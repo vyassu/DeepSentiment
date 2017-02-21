@@ -13,6 +13,7 @@ sudo pip install SpeechRecognition
 sudo pip install -U scikit-learn
 sudo pip install findspark
 sudo pip install flask
+sudo pip install analyse
 sudo pip install flask_cors
 ```
 Note: There may be other prerequiste library files that needs to installed before installing the above mentioned modules.
